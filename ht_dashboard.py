@@ -11,8 +11,9 @@ import streamlit as st
 # ------------------------------------------------------------
 # Settings: change this to your existing SQLite database file.
 # ------------------------------------------------------------
-DEFAULT_DB_PATH = (
-    r"C:\Users\thoma\Documents\data\bvr_capacity\bvr_capacity.sqlite"
+
+DEFAULT_DB_PATH = str(
+    Path(__file__).resolve().parent / "bvr_capacity.sqlite"
 )
 
 DEFAULT_START_DATE = date(2026, 10, 9)
