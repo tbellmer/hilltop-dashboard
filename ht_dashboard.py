@@ -11,9 +11,8 @@ import streamlit as st
 # ------------------------------------------------------------
 # Settings: change this to your existing SQLite database file.
 # ------------------------------------------------------------
-
-DEFAULT_DB_PATH = str(
-    Path(__file__).resolve().parent / "bvr_capacity.sqlite"
+DEFAULT_DB_PATH = (
+    r"C:\Users\thoma\Documents\data\bvr_capacity\bvr_capacity.sqlite"
 )
 
 DEFAULT_START_DATE = date(2026, 10, 9)
@@ -135,7 +134,10 @@ def main():
     # --------------------------------------------------------
     st.sidebar.header("Database")
 
-    db_path_text = DEFAULT_DB_PATH
+    db_path_text = st.sidebar.text_input(
+        "SQLite database path",
+        value=DEFAULT_DB_PATH,
+    )
 
     load_start_date = st.sidebar.date_input(
         "Load records starting",
@@ -288,6 +290,51 @@ def main():
     )
 
     # --------------------------------------------------------
+    # Typical range by hour
+    # --------------------------------------------------------
+    st.subheader("Typical range by hour")
+
+    st.caption(
+        "Each box shows the spread of captured counts for that "
+        "reporting hour. The line inside the box is the median. "
+        "Individual points beyond the box are unusually high or "
+        "low observations."
+    )
+
+    box_fig = px.box(
+        filtered,
+        x="hour",
+        y=activity,
+        labels={
+            "hour": "Capture-hour bucket",
+            activity: "Captured count",
+        },
+    )
+
+    available_hours = sorted(filtered["hour"].unique())
+
+    box_fig.update_xaxes(
+        tickmode="array",
+        tickvals=available_hours,
+        ticktext=[
+            f"{hour:02d}:30" for hour in available_hours
+        ],
+    )
+
+    box_fig.update_yaxes(rangemode="tozero")
+
+    st.plotly_chart(
+        box_fig,
+        use_container_width=True,
+    )
+
+    st.caption(
+        "A narrow box means the counts for that time slot have been "
+        "similar across observed days. A wide box or distant points "
+        "means activity has varied more."
+    )
+
+    # --------------------------------------------------------
     # Weekday/hour heatmap
     # --------------------------------------------------------
     st.subheader("Typical activity by weekday and hour")
@@ -416,6 +463,7 @@ def main():
         ),
         use_container_width=True,
     )
+
 
     # --------------------------------------------------------
     # Source records and optional export
