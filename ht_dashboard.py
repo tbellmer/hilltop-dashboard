@@ -552,10 +552,10 @@ def main():
             ticksuffix="%",
         )
 
-	comparison_fig.update_traces(
-    	    texttemplate="%{y:.2f}%",
+        comparison_fig.update_traces(
+            texttemplate="%{y:.2f}%",
             textposition="outside",
-	)
+        )
 
         st.plotly_chart(
             comparison_fig,
