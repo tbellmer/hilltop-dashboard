@@ -573,6 +573,78 @@ def main():
             "compare the two activities at the same reporting time."
         )
 
+    # --------------------------------------------------------
+    # Pickleball and basketball relationship
+    # --------------------------------------------------------
+    st.subheader("Pickleball and basketball relationship")
+
+    st.caption(
+        "Each point represents one observed date and time where both "
+        "activities were open. This shows whether the two activities "
+        "tend to be busy at the same time."
+    )
+
+    relationship = filtered[
+        [
+            "capture_date",
+            "capture_time",
+            "pickleball_pct",
+            "basketball_pct",
+        ]
+    ].dropna(
+        subset=["pickleball_pct", "basketball_pct"]
+    )
+
+    if relationship.empty:
+        st.info(
+            "No observations have both pickleball and basketball open."
+        )
+    else:
+        relationship_fig = px.scatter(
+            relationship,
+            x="pickleball_pct",
+            y="basketball_pct",
+            hover_data=[
+                "capture_date",
+                "capture_time",
+            ],
+            labels={
+                "pickleball_pct": "Pickleball percent utilized",
+                "basketball_pct": "Basketball percent utilized",
+            },
+        )
+
+        relationship_fig.update_xaxes(
+            rangemode="tozero",
+            ticksuffix="%",
+        )
+
+        relationship_fig.update_yaxes(
+            rangemode="tozero",
+            ticksuffix="%",
+        )
+
+        relationship_fig.update_traces(
+            hovertemplate=(
+                "Date: %{customdata[0]}<br>"
+                "Time: %{customdata[1]}<br>"
+                "Pickleball: %{x:.2f}%<br>"
+                "Basketball: %{y:.2f}%"
+                "<extra></extra>"
+            )
+        )
+
+        st.plotly_chart(
+            relationship_fig,
+            use_container_width=True,
+        )
+
+        st.caption(
+            "Points in the upper-right indicate times when both activities "
+            "were relatively busy. Points in the lower-left indicate times "
+            "when both were relatively quiet. This chart shows association, "
+            "not cause and effect."
+        )
 
     # --------------------------------------------------------
     # Source records and optional export
