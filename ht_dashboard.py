@@ -28,6 +28,13 @@ WEEKDAYS = [
     "Sunday",
 ]
 
+ACTIVITY_CAPACITY = {
+    "pickleball": 32,
+    "basketball": 60,
+    "floor": 100,
+    "track": 30,
+}
+
 
 def load_data(db_path, start_date):
     """Read the requested records using a short-lived connection."""
@@ -76,6 +83,11 @@ def prepare_data(df):
 
     for column in ["pickleball", "basketball", "floor", "track"]:
         df[column] = pd.to_numeric(df[column], errors="coerce")
+
+    for activity_name, capacity in ACTIVITY_CAPACITY.items():
+        df[f"{activity_name}_pct"] = (
+            df[activity_name] / capacity * 100
+        )
 
     invalid_timestamps = int(df["timestamp"].isna().sum())
     df = df.dropna(subset=["timestamp"]).copy()
@@ -464,6 +476,167 @@ def main():
         ),
         use_container_width=True,
     )
+
+
+    # --------------------------------------------------------
+    # Percent utilized by hour
+    # --------------------------------------------------------
+    st.subheader("Percent utilized by hour")
+
+    st.caption(
+        "This chart compares average utilization for activities with "
+        "different capacities. It uses the same reporting-hour buckets "
+        "as the other charts."
+    )
+
+    pct_columns = [
+        "pickleball_pct",
+        "basketball_pct",
+        "floor_pct",
+        "track_pct",
+    ]
+
+    pct_hourly = (
+        filtered.groupby(["weekday", "hour"], as_index=False)[pct_columns]
+        .mean()
+    )
+
+    pct_long = pct_hourly.melt(
+        id_vars=["weekday", "hour"],
+        value_vars=pct_columns,
+        var_name="activity",
+        value_name="percent_utilized",
+    )
+
+    pct_long["activity"] = (
+        pct_long["activity"]
+        .str.replace("_pct", "", regex=False)
+        .str.title()
+    )
+
+    pct_fig = px.line(
+        pct_long,
+        x="hour",
+        y="percent_utilized",
+        color="activity",
+        markers=True,
+        labels={
+            "hour": "Capture-hour bucket",
+            "percent_utilized": "Average percent utilized",
+            "activity": "Activity",
+        },
+    )
+
+    available_hours = sorted(filtered["hour"].unique())
+
+    pct_fig.update_xaxes(
+        tickmode="array",
+        tickvals=available_hours,
+        ticktext=[
+            f"{hour:02d}:30" for hour in available_hours
+        ],
+    )
+
+    pct_fig.update_yaxes(
+        rangemode="tozero",
+        ticksuffix="%",
+    )
+
+    st.plotly_chart(
+        pct_fig,
+        use_container_width=True,
+    )
+
+    st.caption(
+        "Percent utilized is calculated as captured count divided by "
+        "that activity's capacity. Pickleball and basketball exclude "
+        "captures when that activity is marked closed; floor and track "
+        "are included independently."
+    )
+
+    # --------------------------------------------------------
+    # Pickleball versus basketball
+    # --------------------------------------------------------
+    st.subheader("Pickleball versus basketball")
+
+    comparison = filtered[
+        [
+            "timestamp",
+            "hour",
+            "pickleball_pct",
+            "basketball_pct",
+        ]
+    ].dropna(
+        subset=["pickleball_pct", "basketball_pct"]
+    )
+
+    if comparison.empty:
+        st.info(
+            "No observations have both pickleball and basketball open."
+        )
+    else:
+        comparison_by_hour = (
+            comparison.groupby("hour", as_index=False)[
+                ["pickleball_pct", "basketball_pct"]
+            ]
+            .mean()
+        )
+
+        comparison_long = comparison_by_hour.melt(
+            id_vars=["hour"],
+            value_vars=[
+                "pickleball_pct",
+                "basketball_pct",
+            ],
+            var_name="activity",
+            value_name="percent_utilized",
+        )
+
+        comparison_long["activity"] = (
+            comparison_long["activity"]
+            .str.replace("_pct", "", regex=False)
+            .str.title()
+        )
+
+        comparison_fig = px.bar(
+            comparison_long,
+            x="hour",
+            y="percent_utilized",
+            color="activity",
+            barmode="group",
+            labels={
+                "hour": "Capture-hour bucket",
+                "percent_utilized": "Average percent utilized",
+                "activity": "Activity",
+            },
+        )
+
+        available_hours = sorted(comparison["hour"].unique())
+
+        comparison_fig.update_xaxes(
+            tickmode="array",
+            tickvals=available_hours,
+            ticktext=[
+                f"{hour:02d}:30"
+                for hour in available_hours
+            ],
+        )
+
+        comparison_fig.update_yaxes(
+            rangemode="tozero",
+            ticksuffix="%",
+        )
+
+        st.plotly_chart(
+            comparison_fig,
+            use_container_width=True,
+        )
+
+        st.caption(
+            "This chart includes only observations where both pickleball "
+            "and basketball were open. Grouped bars make it easy to "
+            "compare the two activities at the same reporting time."
+        )
 
 
     # --------------------------------------------------------
