@@ -553,9 +553,14 @@ def main():
         )
 
         comparison_fig.update_traces(
-            texttemplate="%{y:.2f}%",
-            textposition="outside",
+            hovertemplate=(
+                "%{x}<br>"
+                "%{fullData.name}: %{y:.2f}%"
+                "<extra></extra>"
+            )
         )
+
+
 
         st.plotly_chart(
             comparison_fig,
