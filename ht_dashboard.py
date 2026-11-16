@@ -459,23 +459,41 @@ def main():
     # --------------------------------------------------------
     # Individual dates
     # --------------------------------------------------------
-    st.subheader("Activity by individual date")
 
-    daily = hourly.pivot_table(
-        index="date",
-        columns="hour",
-        values=activity,
-        aggfunc="mean",
-    ).sort_index().reindex(columns=hour_order)
+    st.subheader("Activity by individual date — last 14 days")
 
-    st.plotly_chart(
-        make_heatmap(
-            daily,
-            title="Captured count by date",
-            color_label="Count",
-        ),
-        use_container_width=True,
-    )
+    today = pd.Timestamp.today().normalize()
+    start_date = today - pd.Timedelta(days=13)
+
+    hourly_dates = pd.to_datetime(hourly["date"]).dt.normalize()
+
+    recent_hourly = hourly.loc[
+        (hourly_dates >= start_date)
+        & (hourly_dates <= today)
+    ]
+
+    if recent_hourly.empty:
+        st.info("No observations are available for the last 14 days.")
+    else:
+        daily = (
+            recent_hourly.pivot_table(
+                index="date",
+                columns="hour",
+                values=activity,
+                aggfunc="mean",
+            )
+            .sort_index()
+            .reindex(columns=hour_order)
+        )
+
+        st.plotly_chart(
+            make_heatmap(
+                daily,
+                title="Captured count by date — last 14 days",
+                color_label="Count",
+            ),
+            use_container_width=True,
+        )
 
 
 
